@@ -1,1 +1,2 @@
 sleeper-api-wrapper
+plotly
