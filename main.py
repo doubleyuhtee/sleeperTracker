@@ -17,8 +17,10 @@ def calculate_scores(stats, week_projection, matchups, users, rosters):
     matchup_map = {}
     for m in matchups:
         matchup_roster = [r for r in rosters if r['roster_id'] == m['roster_id']][0]
-        owner_id = matchup_roster['owner_id']
         current_points = sum(m['starters_points'])
+        team_owner = [x for x in users if matchup_roster['owner_id'] == x['user_id']][0]
+        display_name = team_owner['metadata']['team_name'] if 'team_name' in team_owner['metadata'] else team_owner['display_name']
+        print(display_name)
         projected = 0
         for p in m['starters']:
             plr_proj = stats.get_player_week_score(week_projection, p)
@@ -28,13 +30,13 @@ def calculate_scores(stats, week_projection, matchups, users, rosters):
             matchup_map[m['matchup_id']]['p2'] = {
                 "current": current_points,
                 "projected": projected,
-                "team_name": owner_id
+                "team_name": display_name
             }
         else:
             matchup_map[m['matchup_id']] = {'p1': {
                 "current": current_points,
                 "projected": projected,
-                "team_name": owner_id}
+                "team_name": display_name}
             }
     return matchup_map
 
@@ -59,9 +61,10 @@ def record_data(week: int):
     with open("data.csv", "a+") as file:
         now = current_seconds_time()
         for matchup in matchup_map:
-            print(matchup)
             file.write(f"{now},{week},{matchup},{matchup_map[matchup]['p2']['team_name']},{matchup_map[matchup]['p2']['projected']},{matchup_map[matchup]['p2']['current']},{matchup_map[matchup]['p1']['team_name']},{matchup_map[matchup]['p1']['projected']},{matchup_map[matchup]['p1']['current']}\n")
 
 
 if __name__ == '__main__':
-    record_data(11)
+    while True:
+        record_data(11)
+        time.sleep(600)
