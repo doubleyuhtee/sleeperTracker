@@ -5,6 +5,8 @@ import time
 
 import configparser
 
+import graphit
+
 config = configparser.ConfigParser()
 config.read("secrets")
 
@@ -20,12 +22,12 @@ def calculate_scores(stats, week_projection, matchups, users, rosters):
         current_points = sum(m['starters_points'])
         team_owner = [x for x in users if matchup_roster['owner_id'] == x['user_id']][0]
         display_name = team_owner['metadata']['team_name'] if 'team_name' in team_owner['metadata'] else team_owner['display_name']
-        print(display_name)
+        # print(display_name)
         projected = 0
         for p in m['starters']:
             plr_proj = stats.get_player_week_score(week_projection, p)
             projected = projected + plr_proj["pts_ppr"] if "pts_ppr" in plr_proj and plr_proj["pts_ppr"] else 0
-        print(str(current_points) + " / " + str(projected))
+        # print(str(current_points) + " / " + str(projected))
         if m['matchup_id'] in matchup_map:
             matchup_map[m['matchup_id']]['p2'] = {
                 "current": current_points,
@@ -54,7 +56,7 @@ def record_data(week: int):
     stats = Stats()
     weekproj = stats.get_week_projections("regular", "2021", week)
     matchup_map = calculate_scores(stats, weekproj, matchups, users, rosters)
-    print(json.dumps(matchup_map, indent=2))
+    # print(json.dumps(matchup_map, indent=2))
     if not exists("data.csv"):
         open("data.csv", 'w')\
             .write("timestamp,week,matchup_number,team1,team1_projected,team1_score,team2,team2_projected,team2_score\n")
@@ -67,4 +69,6 @@ def record_data(week: int):
 if __name__ == '__main__':
     while True:
         record_data(11)
+        print(time.time())
+        graphit.generate()
         time.sleep(600)

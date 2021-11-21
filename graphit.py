@@ -1,4 +1,6 @@
 import csv
+import webbrowser
+
 import plotly.graph_objects as go
 from datetime import datetime
 
@@ -36,7 +38,7 @@ def generate():
         fig.add_trace(go.Scatter(x=timestamps, y=team_data[t]['projected'], line=dict(dash='dash', color=colors[color_pos]), name="Proj " + t))
         fig.add_trace(go.Scatter(x=timestamps, y=team_data[t]['current'], line=dict(color=colors[color_pos]), name="Curr " + t))
         color_pos = color_pos+1
-    fig.show()
+    fig.write_html("out.html")
 
 
 if __name__ == "__main__":
