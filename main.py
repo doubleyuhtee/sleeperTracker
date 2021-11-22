@@ -56,7 +56,7 @@ def record_data():
     nfl_state = get_nfl_state()
     week = nfl_state["display_week"]
     year = nfl_state["league_season"]
-    print(f"{week} {year}")
+    print(f"{current_seconds_time()} {week} {year}")
     league_id = config['league']['id']
     league = League(league_id)
     matchups = league.get_matchups(week)
@@ -78,10 +78,9 @@ def record_data():
     graphit.generate()
 
 
-schedule.every().day.at("00:00").do(record_data)
+schedule.every().hour.do(record_data)
 schedule.every().day.at("11:00").do(record_data)
 schedule.every().sunday.at("05:00").do(record_data)
-schedule.every().sunday.at("11:00").do(record_data)
 schedule.every().sunday.at("11:58").do(record_data)
 schedule.every().sunday.at("12:01").do(record_data)
 schedule.every().sunday.at("12:10").do(record_data)
@@ -90,10 +89,10 @@ schedule.every().sunday.at("12:30").do(record_data)
 schedule.every().sunday.at("12:40").do(record_data)
 schedule.every().sunday.at("12:50").do(record_data)
 for i in range(13, 24):
-    for m in range(0, 60, 10):
+    for m in range(5, 60, 5):
         schedule.every().sunday.at(f"{i}:{m:02}").do(record_data)
 for i in range(18, 23):
-    for m in range(0, 60, 10):
+    for m in range(5, 60, 5):
         schedule.every().monday.at(f"{i}:{m:02}").do(record_data)
 
 if __name__ == '__main__':
