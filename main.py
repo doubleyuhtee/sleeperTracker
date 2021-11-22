@@ -2,10 +2,11 @@ import json
 from os.path import exists
 from sleeper_wrapper import League, Players, Stats
 import time
-
+import requests
 import configparser
 
 import graphit
+import schedule
 
 config = configparser.ConfigParser()
 config.read("secrets")
@@ -13,6 +14,10 @@ config.read("secrets")
 
 def current_seconds_time():
     return round(time.time())
+
+
+def get_nfl_state():
+    return requests.get("https://api.sleeper.app/v1/state/nfl").json()
 
 
 def calculate_scores(stats, week_projection, matchups, users, rosters):
@@ -43,10 +48,15 @@ def calculate_scores(stats, week_projection, matchups, users, rosters):
     return matchup_map
 
 
-def record_data(week: int):
+def record_data():
     if not exists("playerData"):
         players = Players()
         open("playerData", 'w').write(json.dumps(players.get_all_players(), indent=2))
+
+    nfl_state = get_nfl_state()
+    week = nfl_state["display_week"]
+    year = nfl_state["league_season"]
+    print(f"{week} {year}")
     league_id = config['league']['id']
     league = League(league_id)
     matchups = league.get_matchups(week)
@@ -54,7 +64,7 @@ def record_data(week: int):
     rosters = league.get_rosters()
 
     stats = Stats()
-    weekproj = stats.get_week_projections("regular", "2021", week)
+    weekproj = stats.get_week_projections("regular", year, week)
     matchup_map = calculate_scores(stats, weekproj, matchups, users, rosters)
     # print(json.dumps(matchup_map, indent=2))
     if not exists("data.csv"):
@@ -65,10 +75,29 @@ def record_data(week: int):
         for matchup in matchup_map:
             file.write(f"{now},{week},{matchup},{matchup_map[matchup]['p2']['team_name']},{matchup_map[matchup]['p2']['projected']},{matchup_map[matchup]['p2']['current']},{matchup_map[matchup]['p1']['team_name']},{matchup_map[matchup]['p1']['projected']},{matchup_map[matchup]['p1']['current']}\n")
 
+    graphit.generate()
+
+
+schedule.every().day.at("00:00").do(record_data)
+schedule.every().day.at("11:00").do(record_data)
+schedule.every().sunday.at("05:00").do(record_data)
+schedule.every().sunday.at("11:00").do(record_data)
+schedule.every().sunday.at("11:58").do(record_data)
+schedule.every().sunday.at("12:01").do(record_data)
+schedule.every().sunday.at("12:10").do(record_data)
+schedule.every().sunday.at("12:20").do(record_data)
+schedule.every().sunday.at("12:30").do(record_data)
+schedule.every().sunday.at("12:40").do(record_data)
+schedule.every().sunday.at("12:50").do(record_data)
+for i in range(13, 24):
+    for m in range(0, 60, 10):
+        schedule.every().sunday.at(f"{i}:{m:02}").do(record_data)
+for i in range(18, 23):
+    for m in range(0, 60, 10):
+        schedule.every().monday.at(f"{i}:{m:02}").do(record_data)
 
 if __name__ == '__main__':
+    record_data()
     while True:
-        record_data(11)
-        print(time.time())
-        graphit.generate()
-        time.sleep(600)
+        schedule.run_pending()
+        time.sleep(60)

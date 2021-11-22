@@ -1,5 +1,5 @@
 import csv
-import webbrowser
+import schedule
 
 import plotly.graph_objects as go
 from datetime import datetime
