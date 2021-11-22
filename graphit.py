@@ -18,9 +18,9 @@ def generate():
             team1_key = row['team1']
             team2_key = row['team2']
             if team1_key not in team_data:
-                team_data[team1_key] = {'current': [], 'projected': []}
+                team_data[team1_key] = {'current': [], 'projected': [], "matchup": row["matchup_number"]}
             if team2_key not in team_data:
-                team_data[team2_key] = {'current': [], 'projected': []}
+                team_data[team2_key] = {'current': [], 'projected': [], "matchup": row["matchup_number"]}
             time_as_string = datetime.fromtimestamp(int(row['timestamp']))
             if time_as_string not in timestamps:
                 timestamps.append(time_as_string)
@@ -35,8 +35,8 @@ def generate():
     fig.update_yaxes(range=[0, 200])
     fig.update_xaxes(range=x_range, tickformat="%a %H:%M")
     for t in team_data:
-        fig.add_trace(go.Scatter(x=timestamps, y=team_data[t]['projected'], line=dict(dash='dash', color=colors[color_pos]), name="Proj " + t))
-        fig.add_trace(go.Scatter(x=timestamps, y=team_data[t]['current'], line=dict(color=colors[color_pos]), name="Curr " + t))
+        fig.add_trace(go.Scatter(x=timestamps, y=team_data[t]['projected'], legendgroup=team_data[t]["matchup"], line=dict(dash='dash', color=colors[color_pos]), name="Proj " + t))
+        fig.add_trace(go.Scatter(x=timestamps, y=team_data[t]['current'],  legendgroup=team_data[t]["matchup"], line=dict(color=colors[color_pos]), name="Curr " + t))
         color_pos = color_pos+1
     fig.write_html("out.html")
 
