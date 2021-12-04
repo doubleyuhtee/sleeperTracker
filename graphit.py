@@ -1,5 +1,4 @@
 import csv
-import schedule
 
 import plotly.graph_objects as go
 from datetime import datetime
@@ -9,12 +8,14 @@ colors = ['#636EFA', '#EF553B', '#00CC96', '#AB63FA', '#FFA15A', '#19D3F3', '#FF
           "#000000", "#FF0000", "#FF0000", "#FF0000"]
 
 
-def generate():
-    with open("data.csv") as csvfile:
+def generate(week: int):
+    with open(f"static/raw/data{week}.csv") as csvfile:
         reader = csv.DictReader(csvfile)
         team_data = {}
         timestamps = []
         for row in reader:
+            if 'graphbreak' in row and row['graphbreak']:
+                continue
             team1_key = row['team1']
             team2_key = row['team2']
             if team1_key not in team_data:
@@ -32,14 +33,16 @@ def generate():
     color_pos = 0
     x_range = [min(timestamps), max(timestamps)]
     fig = go.Figure()
+
     fig.update_yaxes(range=[0, 200])
     fig.update_xaxes(range=x_range, tickformat="%a %H:%M")
+    fig.update_xaxes(rangebreaks=[{'bounds': [1637560800, 1637625600], 'enabled':True}], tickformat="%a %H:%M")
     for t in team_data:
-        fig.add_trace(go.Scatter(x=timestamps, y=team_data[t]['projected'], legendgroup=team_data[t]["matchup"], line=dict(dash='dash', color=colors[color_pos]), name="Proj " + t))
-        fig.add_trace(go.Scatter(x=timestamps, y=team_data[t]['current'],  legendgroup=team_data[t]["matchup"], line=dict(color=colors[color_pos]), name="Curr " + t))
+        fig.add_trace(go.Scatter(x=timestamps, y=team_data[t]['projected'], legendgroup=team_data[t]["matchup"], line=dict(dash='dash', color=colors[color_pos]), line_shape='hv', name="Proj " + t))
+        fig.add_trace(go.Scatter(x=timestamps, y=team_data[t]['current'],  legendgroup=team_data[t]["matchup"], line=dict(color=colors[color_pos]), line_shape='hv', name="Curr " + t))
         color_pos = color_pos+1
-    fig.write_html("out.html")
+    fig.write_html(f"static/week{week}.html")
 
 
 if __name__ == "__main__":
-    generate()
+    generate(11)

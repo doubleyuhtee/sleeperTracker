@@ -1,3 +1,5 @@
 sleeper-api-wrapper
 plotly
 schedule
+flask
+requests

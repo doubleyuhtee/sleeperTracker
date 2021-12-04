@@ -1,4 +1,6 @@
 import json
+import os
+import threading
 from os.path import exists
 from sleeper_wrapper import League, Players, Stats
 import time
@@ -7,9 +9,26 @@ import configparser
 
 import graphit
 import schedule
+from flask import Flask
+app = Flask(__name__)
 
 config = configparser.ConfigParser()
 config.read("secrets")
+
+csv_header = "timestamp,week,matchup_number,team1,team1_projected,team1_score,team2,team2_projected,team2_score,graphbreak\n"
+
+
+@app.route('/')
+def latest():
+    files = [x for x in os.listdir("static") if "week" in x]
+    files.sort()
+    return app.send_static_file(files[-1])
+
+
+@app.route('/<requested_week>')
+def serve_week(requested_week=0):
+    print(json.dumps(requested_week))
+    return app.send_static_file(f"week{requested_week}.html")
 
 
 def current_seconds_time():
@@ -18,6 +37,17 @@ def current_seconds_time():
 
 def get_nfl_state():
     return requests.get("https://api.sleeper.app/v1/state/nfl").json()
+
+
+def write_break_marker():
+    nfl_state = get_nfl_state()
+    week = nfl_state["display_week"]
+    now = current_seconds_time()
+    if not exists(f"static/raw/data{week}.csv"):
+        open(f"static/raw/data{week}.csv", 'w')\
+            .write(csv_header)
+    with open(f"static/raw/data{week}.csv", "a+") as file:
+        file.write(f"{now},week,matchup_number,team1,team1_projected,team1_score,team2,team2_projected,team2_score,True")
 
 
 def calculate_scores(stats, week_projection, matchups, users, rosters):
@@ -31,7 +61,8 @@ def calculate_scores(stats, week_projection, matchups, users, rosters):
         projected = 0
         for p in m['starters']:
             plr_proj = stats.get_player_week_score(week_projection, p)
-            projected = projected + plr_proj["pts_ppr"] if "pts_ppr" in plr_proj and plr_proj["pts_ppr"] else 0
+            if plr_proj:
+                projected = projected + plr_proj["pts_ppr"] if "pts_ppr" in plr_proj and plr_proj["pts_ppr"] else 0
         # print(str(current_points) + " / " + str(projected))
         if m['matchup_id'] in matchup_map:
             matchup_map[m['matchup_id']]['p2'] = {
@@ -54,7 +85,7 @@ def record_data():
         open("playerData", 'w').write(json.dumps(players.get_all_players(), indent=2))
 
     nfl_state = get_nfl_state()
-    week = nfl_state["display_week"]
+    week = nfl_state["week"]
     year = nfl_state["league_season"]
     print(f"{current_seconds_time()} {week} {year}")
     league_id = config['league']['id']
@@ -67,15 +98,15 @@ def record_data():
     weekproj = stats.get_week_projections("regular", year, week)
     matchup_map = calculate_scores(stats, weekproj, matchups, users, rosters)
     # print(json.dumps(matchup_map, indent=2))
-    if not exists("data.csv"):
-        open("data.csv", 'w')\
-            .write("timestamp,week,matchup_number,team1,team1_projected,team1_score,team2,team2_projected,team2_score\n")
-    with open("data.csv", "a+") as file:
+    if not exists(f"static/raw/data{week}.csv"):
+        open(f"static/raw/data{week}.csv", 'w')\
+            .write(csv_header)
+    with open(f"static/raw/data{week}.csv", "a+") as file:
         now = current_seconds_time()
         for matchup in matchup_map:
             file.write(f"{now},{week},{matchup},{matchup_map[matchup]['p2']['team_name']},{matchup_map[matchup]['p2']['projected']},{matchup_map[matchup]['p2']['current']},{matchup_map[matchup]['p1']['team_name']},{matchup_map[matchup]['p1']['projected']},{matchup_map[matchup]['p1']['current']}\n")
 
-    graphit.generate()
+    graphit.generate(week)
 
 
 schedule.every().hour.do(record_data)
@@ -88,6 +119,13 @@ schedule.every().sunday.at("12:20").do(record_data)
 schedule.every().sunday.at("12:30").do(record_data)
 schedule.every().sunday.at("12:40").do(record_data)
 schedule.every().sunday.at("12:50").do(record_data)
+
+schedule.every().monday.at("00:00").do(write_break_marker)
+schedule.every().monday.at("17:50").do(write_break_marker)
+schedule.every().tuesday.at("00:00").do(write_break_marker)
+schedule.every().thursday.at("18:00").do(write_break_marker)
+schedule.every().friday.at("00:00").do(write_break_marker)
+schedule.every().sunday.at("11:00").do(write_break_marker)
 for i in range(13, 24):
     for m in range(5, 60, 5):
         schedule.every().sunday.at(f"{i}:{m:02}").do(record_data)
@@ -95,8 +133,16 @@ for i in range(18, 23):
     for m in range(5, 60, 5):
         schedule.every().monday.at(f"{i}:{m:02}").do(record_data)
 
-if __name__ == '__main__':
+
+def monitor_scores():
     record_data()
+    print("starting to monitor")
     while True:
         schedule.run_pending()
         time.sleep(60)
+
+
+if __name__ == '__main__':
+    print("serving")
+    threading.Thread(target=monitor_scores).start()
+    app.run()
