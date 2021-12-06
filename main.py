@@ -80,33 +80,36 @@ def calculate_scores(stats, week_projection, matchups, users, rosters):
 
 
 def record_data():
-    if not exists("playerData"):
-        players = Players()
-        open("playerData", 'w').write(json.dumps(players.get_all_players(), indent=2))
+    try:
+        if not exists("playerData"):
+            players = Players()
+            open("playerData", 'w').write(json.dumps(players.get_all_players(), indent=2))
 
-    nfl_state = get_nfl_state()
-    week = nfl_state["week"]
-    year = nfl_state["league_season"]
-    print(f"{current_seconds_time()} {week} {year}")
-    league_id = config['league']['id']
-    league = League(league_id)
-    matchups = league.get_matchups(week)
-    users = league.get_users()
-    rosters = league.get_rosters()
+        nfl_state = get_nfl_state()
+        week = nfl_state["week"]
+        year = nfl_state["league_season"]
+        print(f"{current_seconds_time()} {week} {year}")
+        league_id = config['league']['id']
+        league = League(league_id)
+        matchups = league.get_matchups(week)
+        users = league.get_users()
+        rosters = league.get_rosters()
 
-    stats = Stats()
-    weekproj = stats.get_week_projections("regular", year, week)
-    matchup_map = calculate_scores(stats, weekproj, matchups, users, rosters)
-    # print(json.dumps(matchup_map, indent=2))
-    if not exists(f"static/raw/data{week}.csv"):
-        open(f"static/raw/data{week}.csv", 'w')\
-            .write(csv_header)
-    with open(f"static/raw/data{week}.csv", "a+") as file:
-        now = current_seconds_time()
-        for matchup in matchup_map:
-            file.write(f"{now},{week},{matchup},{matchup_map[matchup]['p2']['team_name']},{matchup_map[matchup]['p2']['projected']},{matchup_map[matchup]['p2']['current']},{matchup_map[matchup]['p1']['team_name']},{matchup_map[matchup]['p1']['projected']},{matchup_map[matchup]['p1']['current']}\n")
+        stats = Stats()
+        weekproj = stats.get_week_projections("regular", year, week)
+        matchup_map = calculate_scores(stats, weekproj, matchups, users, rosters)
+        # print(json.dumps(matchup_map, indent=2))
+        if not exists(f"static/raw/data{week}.csv"):
+            open(f"static/raw/data{week}.csv", 'w')\
+                .write(csv_header)
+        with open(f"static/raw/data{week}.csv", "a+") as file:
+            now = current_seconds_time()
+            for matchup in matchup_map:
+                file.write(f"{now},{week},{matchup},{matchup_map[matchup]['p2']['team_name']},{matchup_map[matchup]['p2']['projected']},{matchup_map[matchup]['p2']['current']},{matchup_map[matchup]['p1']['team_name']},{matchup_map[matchup]['p1']['projected']},{matchup_map[matchup]['p1']['current']}\n")
 
-    graphit.generate(week)
+        graphit.generate(week)
+    except Exception as e:
+        print(e)
 
 
 schedule.every().hour.do(record_data)
