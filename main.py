@@ -79,6 +79,10 @@ def calculate_scores(stats, week_projection, matchups, users, rosters):
     return matchup_map
 
 
+def get_secret(secret_config, name, env_name):
+    return secret_config[name] if name in secret_config and secret_config[name] else os.environ.get(env_name)
+
+
 def record_data():
     try:
         if not exists("playerData"):
@@ -89,7 +93,7 @@ def record_data():
         week = nfl_state["week"]
         year = nfl_state["league_season"]
         print(f"{current_seconds_time()} {week} {year}")
-        league_id = config['league']['id']
+        league_id = get_secret(config['league'], 'id', "league_id")
         league = League(league_id)
         matchups = league.get_matchups(week)
         users = league.get_users()
