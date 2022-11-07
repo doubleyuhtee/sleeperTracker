@@ -45,4 +45,4 @@ def generate(week: int):
 
 
 if __name__ == "__main__":
-    generate(11)
+    generate(7)

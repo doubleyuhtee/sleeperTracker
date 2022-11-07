@@ -53,6 +53,7 @@ def write_break_marker():
 def calculate_scores(stats, week_projection, matchups, users, rosters):
     matchup_map = {}
     for m in matchups:
+        # print(json.dumps(m, indent=2))
         matchup_roster = [r for r in rosters if r['roster_id'] == m['roster_id']][0]
         current_points = sum(m['starters_points'])
         team_owner = [x for x in users if matchup_roster['owner_id'] == x['user_id']][0]
@@ -101,6 +102,7 @@ def record_data():
 
         stats = Stats()
         weekproj = stats.get_week_projections("regular", year, week)
+        # print(json.dumps(weekproj, indent=2))
         matchup_map = calculate_scores(stats, weekproj, matchups, users, rosters)
         # print(json.dumps(matchup_map, indent=2))
         if not exists(f"static/raw/data{week}.csv"):
@@ -117,8 +119,6 @@ def record_data():
 
 
 schedule.every().hour.do(record_data)
-schedule.every().day.at("11:00").do(record_data)
-schedule.every().sunday.at("05:00").do(record_data)
 schedule.every().sunday.at("11:58").do(record_data)
 schedule.every().sunday.at("12:01").do(record_data)
 schedule.every().sunday.at("12:10").do(record_data)
@@ -148,8 +148,15 @@ def monitor_scores():
         schedule.run_pending()
         time.sleep(60)
 
+def safe_make_dir(dir):
+    if not (os.path.exists(dir) and os.path.isdir(dir)):
+        os.mkdir(dir)
+
 
 if __name__ == '__main__':
+    safe_make_dir("static")
+    safe_make_dir("static/raw")
+
     print("serving")
     threading.Thread(target=monitor_scores).start()
     app.run()
