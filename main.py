@@ -148,13 +148,17 @@ def monitor_scores():
         schedule.run_pending()
         time.sleep(60)
 
-def safe_make_dir(dir):
-    if not (os.path.exists(dir) and os.path.isdir(dir)):
-        os.mkdir(dir)
+
+def safe_make_dir(full_directory):
+    split_dirs = full_directory.split("/")
+    to_make = ""
+    for d in split_dirs:
+        to_make = to_make + d + "/"
+        if not (os.path.exists(to_make) and os.path.isdir(to_make)): 
+            os.mkdir(to_make)
 
 
 if __name__ == '__main__':
-    safe_make_dir("static")
     safe_make_dir("static/raw")
 
     print("serving")
